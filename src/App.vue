@@ -5,10 +5,10 @@
   <main>
     <div>
       <select name="sort" @change="sortedPage">
-        <option value="">Все персонгажи</option>
-        <option value="alive">Alive</option>
-        <option value="unknown">Unknown</option>
-        <option value="dead">Dead</option>
+        <option value="">Все персонажи</option>
+        <option value="alive">Живые</option>
+        <option value="unknown">Неизвестно</option>
+        <option value="dead">Мертвые</option>
       </select>
       <input
         type="text"
