@@ -5,10 +5,10 @@
   <main>
     <div>
       <select name="sort" @change="sortedPage">
-        <option value="?status=">Все персонгажи</option>
-        <option value="?status=alive">Alive</option>
-        <option value="?status=unknown">Unknown</option>
-        <option value="?status=dead">Dead</option>
+        <option value="">Все персонгажи</option>
+        <option value="alive">Alive</option>
+        <option value="unknown">Unknown</option>
+        <option value="dead">Dead</option>
       </select>
       <input
         type="text"
@@ -57,7 +57,7 @@ const characterCard = ref([]);
 const page = ref(1);
 let pagesCharacterAll = 0;
 let paramApiName = "";
-let paramApiStatus = "?status=";
+let paramApiStatus = "";
 let params = "";
 const searchCharacterName = ref("");
 
@@ -71,7 +71,8 @@ const nextPage = function (item) {
 // SORT
 
 const sortedPage = function (value) {
-  paramApiStatus = value.target.value;
+  paramApiStatus = "?status=";
+  paramApiStatus += value.target.value;
 };
 
 const applySort = function () {
