@@ -58,6 +58,7 @@ const page = ref(1);
 let pagesCharacterAll = 0;
 let paramApiName = "";
 let paramApiStatus = "?status=";
+let params = "";
 const searchCharacterName = ref("");
 
 // NEXT PAGE
@@ -76,6 +77,7 @@ const sortedPage = function (value) {
 const applySort = function () {
   paramApiName = `&name=${searchCharacterName.value}`;
   page.value = 1;
+  params = paramApiStatus + paramApiName;
   requestApi();
 };
 
@@ -83,7 +85,7 @@ const applySort = function () {
 
 const requestApi = async function () {
   const response = await axios.get(
-    `https://rickandmortyapi.com/api/character${paramApiStatus + paramApiName}`,
+    `https://rickandmortyapi.com/api/character${params}`,
     {
       params: {
         page: page.value,
@@ -92,33 +94,37 @@ const requestApi = async function () {
   );
   characterCard.value = response.data.results;
   pagesCharacterAll = response.data.info.pages;
+
   characterCard.value.forEach((itemUrl) => {
-    episodeApi.forEach((item) => {
-      item.forEach((item) => {
-        if (itemUrl.episode[0] === item.url) {
-          itemUrl.episode[0] = item.name;
+    let idEpisodes = itemUrl.episode[0].split("/");
+    episodeApi.push(idEpisodes[idEpisodes.length - 1]);
+  });
+
+  firstEpisodesApi();
+};
+
+let episodeApi = [];
+let episode = [];
+
+// firstEpisodesApi
+
+const firstEpisodesApi = async function () {
+  episode = [];
+  const response = await axios.get(
+    `https://rickandmortyapi.com/api/episode/${episodeApi}`
+  );
+  episode.push(response.data);
+
+  characterCard.value.forEach((i) => {
+    episode.forEach((itemURL) => {
+      itemURL.forEach((item) => {
+        if (item.url === i.episode[0]) {
+          i.episode[0] = item.name;
         }
       });
     });
   });
 };
-
-// ALL EPISODES
-
-let episodeApi = [];
-
-const allEpisodes = async function () {
-  let episodePage = 1;
-  do {
-    const response = await axios.get(
-      `https://rickandmortyapi.com/api/episode?page=${episodePage}`
-    );
-    episodeApi.push(response.data.results);
-    episodePage++;
-  } while (episodePage < 4);
-};
-
-allEpisodes();
 
 requestApi();
 </script>
