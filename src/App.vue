@@ -3,24 +3,33 @@
     <h1>Персонажи из сериала Рик и Морти</h1>
   </header>
   <main>
-    <div>
-      <select name="sort" @change="sortedPage">
-        <option value="">Все персонажи</option>
-        <option value="alive">Живые</option>
-        <option value="unknown">Неизвестно</option>
-        <option value="dead">Мертвые</option>
-      </select>
-      <input
-        type="text"
-        placeholder="Имя персонажа"
-        v-model="searchCharacterName"
-      />
-      <button @click="applySort">Поиск песронажа</button>
-    </div>
+    <form action="" @submit.prevent="onSubmit">
+      <p>
+        <label for="sort">Статус персонажа: </label>
+        <select name="sort" v-model="paramApiStatus">
+          <option value="">Все персонажи</option>
+          <option value="alive">Живые</option>
+          <option value="unknown">Неизвестно</option>
+          <option value="dead">Мертвые</option>
+        </select>
+      </p>
+      <p>
+        <label for="name">Имя персонажа: </label>
+        <input
+          name="name"
+          type="text"
+          placeholder="Имя персонажа"
+          v-model="paramApiName"
+        />
+      </p>
+      <p>
+        <input type="submit" value="Поиск" />
+      </p>
+    </form>
 
     <div class="main__character__card__all">
       <div
-        v-for="item in characterCard"
+        v-for="item in characters"
         :key="item.id"
         class="main__character__card__all__wrapper"
       >
@@ -37,7 +46,7 @@
             Последнее известное местоположение: {{ item.location.name }}
           </div>
           <div class="main__character__episode">
-            Впервые был замечен в: {{ item.episode[0] }}
+            Впервые был замечен в: {{ item.debudeEpisode }}
           </div>
         </div>
       </div>
@@ -53,81 +62,71 @@
 <script setup>
 import { ref } from "vue";
 import axios from "axios";
-const characterCard = ref([]);
+const characters = ref([]);
 const page = ref(1);
 let pagesCharacterAll = 0;
-let paramApiName = "";
-let paramApiStatus = "";
-let params = "";
-const searchCharacterName = ref("");
+let paramApiName = ref("");
+let paramApiStatus = ref("");
 
 // NEXT PAGE
 
-const nextPage = function (item) {
+const nextPage = (item) => {
   page.value = item;
-  requestApi();
+  fetchEpisodes();
 };
 
 // SORT
-
-const sortedPage = function (value) {
-  paramApiStatus = "?status=";
-  paramApiStatus += value.target.value;
-};
-
-const applySort = function () {
-  paramApiName = `&name=${searchCharacterName.value}`;
+const onSubmit = () => {
   page.value = 1;
-  params = paramApiStatus + paramApiName;
-  requestApi();
+  fetchEpisodes();
 };
 
 // API
 
-const requestApi = async function () {
+const fetchEpisodes = async () => {
   const response = await axios.get(
-    `https://rickandmortyapi.com/api/character${params}`,
+    `https://rickandmortyapi.com/api/character`,
     {
       params: {
+        name: paramApiName.value,
+        status: paramApiStatus.value,
         page: page.value,
       },
     }
   );
-  characterCard.value = response.data.results;
+  characters.value = response.data.results;
   pagesCharacterAll = response.data.info.pages;
 
-  characterCard.value.forEach((itemUrl) => {
+  console.log(characters.value[0]);
+
+  firstEpisodesIds();
+};
+
+const firstEpisodesIds = async () => {
+  let firstEpisodesIdsApi = [];
+  let episodes = [];
+
+  characters.value.forEach((itemUrl) => {
     let idEpisodes = itemUrl.episode[0].split("/");
-    episodeApi.push(idEpisodes[idEpisodes.length - 1]);
+    firstEpisodesIdsApi.push(idEpisodes[idEpisodes.length - 1]);
   });
 
-  firstEpisodesApi();
-};
-
-let episodeApi = [];
-let episode = [];
-
-// firstEpisodesApi
-
-const firstEpisodesApi = async function () {
-  episode = [];
   const response = await axios.get(
-    `https://rickandmortyapi.com/api/episode/${episodeApi}`
+    `https://rickandmortyapi.com/api/episode/${firstEpisodesIdsApi}`
   );
-  episode.push(response.data);
 
-  characterCard.value.forEach((i) => {
-    episode.forEach((itemURL) => {
-      itemURL.forEach((item) => {
-        if (item.url === i.episode[0]) {
-          i.episode[0] = item.name;
-        }
-      });
-    });
+  episodes.push(response.data);
+
+  characters.value.forEach((itemCard) => {
+    for (const key in episodes[0]) {
+      if (episodes[0][key].url === itemCard.episode[0]) {
+        itemCard.debudeEpisode = episodes[0][key].name;
+      }
+    }
   });
 };
 
-requestApi();
+fetchEpisodes();
 </script>
 
 <style scoped>
