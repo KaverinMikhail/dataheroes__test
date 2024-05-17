@@ -3,127 +3,80 @@
     <h1>Персонажи из сериала Рик и Морти</h1>
   </header>
   <main>
-    <form action="" @submit.prevent="onSubmit">
-      <p>
-        <label for="sort">Статус персонажа: </label>
-        <select name="sort" v-model="paramApiStatus">
-          <option value="">Все персонажи</option>
-          <option value="alive">Живые</option>
-          <option value="unknown">Неизвестно</option>
-          <option value="dead">Мертвые</option>
-        </select>
-      </p>
-      <p>
-        <label for="name">Имя персонажа: </label>
-        <input
-          name="name"
-          type="text"
-          placeholder="Имя персонажа"
-          v-model="paramApiName"
-        />
-      </p>
-      <p>
-        <input type="submit" value="Поиск" />
-      </p>
-    </form>
-
-    <div class="main__character__card__all">
-      <div
-        v-for="item in characters"
-        :key="item.id"
-        class="main__character__card__all__wrapper"
-      >
-        <div class="main__character__img">
-          <img :src="item.image" alt="#" />
-        </div>
-        <div class="main__character">
-          <strong
-            ><div class="main__character__name">{{ item.name }}</div></strong
-          >
-          <div class="main__character__status">{{ item.status }}</div>
-          <div class="main__character__species">{{ item.species }}</div>
-          <div class="main__character__location">
-            Последнее известное местоположение: {{ item.location.name }}
-          </div>
-          <div class="main__character__episode">
-            Впервые был замечен в: {{ item.debudeEpisode }}
-          </div>
-        </div>
-      </div>
+    <CharactersFiltersForm @submit="form"></CharactersFiltersForm>
+    <div v-if="!isLoading">
+      <CharacterCard :characters="characters"></CharacterCard>
+      <PaginationFooter
+        @page="pagination"
+        :pagesCharacterAll="pagesCharacterAll"
+      ></PaginationFooter>
     </div>
-    <div class="nextBtn">
-      <div v-for="item in pagesCharacterAll" :key="item">
-        <button @click="nextPage(item)">{{ item }}</button>
-      </div>
-    </div>
+    <div v-else>Идет загрузка....</div>
   </main>
 </template>
 
 <script setup>
+import CharactersFiltersForm from "./components/forms/CharactersFiltersForm.vue";
+import CharacterCard from "./components/CharacterCard.vue";
+import PaginationFooter from "./components/PaginationFooter.vue";
+
 import { ref } from "vue";
 import axios from "axios";
+
+const name = ref("");
+const status = ref("");
 const characters = ref([]);
 const page = ref(1);
-let pagesCharacterAll = 0;
-let paramApiName = ref("");
-let paramApiStatus = ref("");
+const pagesCharacterAll = ref(0);
+const isLoading = ref(false);
 
-// NEXT PAGE
-
-const nextPage = (item) => {
-  page.value = item;
-  fetchEpisodes();
-};
-
-// SORT
-const onSubmit = () => {
+const form = (emit) => {
+  name.value = emit.name.value;
+  status.value = emit.status.value;
   page.value = 1;
   fetchEpisodes();
 };
 
-// API
+const pagination = (emit) => {
+  page.value = emit;
+  fetchEpisodes();
+};
 
 const fetchEpisodes = async () => {
+  isLoading.value = true;
   const response = await axios.get(
     `https://rickandmortyapi.com/api/character`,
     {
       params: {
-        name: paramApiName.value,
-        status: paramApiStatus.value,
+        name: name.value,
+        status: status.value,
         page: page.value,
       },
     }
   );
   characters.value = response.data.results;
-  pagesCharacterAll = response.data.info.pages;
-
-  console.log(characters.value[0]);
-
+  pagesCharacterAll.value = response.data.info.pages;
+  isLoading.value = false;
   firstEpisodesIds();
 };
 
 const firstEpisodesIds = async () => {
   let firstEpisodesIdsApi = [];
-  let episodes = [];
-
+  isLoading.value = true;
   characters.value.forEach((itemUrl) => {
     let idEpisodes = itemUrl.episode[0].split("/");
     firstEpisodesIdsApi.push(idEpisodes[idEpisodes.length - 1]);
   });
-
   const response = await axios.get(
     `https://rickandmortyapi.com/api/episode/${firstEpisodesIdsApi}`
   );
-
-  episodes.push(response.data);
-
+  const resultEpisodes = Object.groupBy(response.data, ({ url }) => url);
   characters.value.forEach((itemCard) => {
-    for (const key in episodes[0]) {
-      if (episodes[0][key].url === itemCard.episode[0]) {
-        itemCard.debudeEpisode = episodes[0][key].name;
-      }
+    if (resultEpisodes[itemCard.episode[0]][0].url === itemCard.episode[0]) {
+      itemCard.debudeEpisode = resultEpisodes[itemCard.episode[0]][0].name;
     }
   });
+  isLoading.value = false;
 };
 
 fetchEpisodes();
@@ -132,48 +85,5 @@ fetchEpisodes();
 <style scoped>
 header {
   text-align: center;
-}
-.main__character__card__all {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-around;
-  background-color: #272b33;
-}
-.main__character__card__all__wrapper {
-  border-radius: 10px;
-  background-color: #3c3e44;
-  color: white;
-  width: 30%;
-  margin-top: 10px;
-  margin-bottom: 10px;
-  display: flex;
-}
-.main__character__img img {
-  width: 150px;
-  height: 100%;
-  border-radius: 10px 0 0 10px;
-  margin-right: 10px;
-}
-.main__character {
-}
-.main__character__name {
-  font-size: 32px;
-  font-weight: 700;
-}
-.main__character__status {
-}
-.main__character__species {
-}
-.main__character__location {
-}
-.main__character__episode {
-}
-
-.nextBtn {
-  display: flex;
-  justify-content: center;
-}
-.nextBtn button {
-  margin: 5px;
 }
 </style>
